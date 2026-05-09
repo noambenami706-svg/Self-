@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html class="light" dir="rtl" lang="he">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BenAmi.project</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Inter:wght@400;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --surface: #fbf9f4;
+    --surface-container-low: #f5f3ee;
+    --surface-container: #f0eee9;
+    --surface-container-high: #eae8e3;
+    --surface-container-highest: #e4e2dd;
+    --surface-dim: #dcdad5;
+    --on-surface: #1b1c19;
+    --on-surface-variant: #57423a;
+    --primary: #a03c01;
+    --primary-bright: #d4622a;
+    --tertiary-fixed: #e6e2d6;
+    --tab-color: #e8e4d8;
+    --ink-chip: #2a2a2a;
+    --chip-text: #f5f3ee;
+  }
+
+  html, body {
+    background: var(--surface-container-low);
+    color: var(--on-surface);
+    font-family: 'Heebo', sans-serif;
+    min-height: 100vh;
+  }
+
+  body { display: flex; flex-direction: column; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  @keyframes blinker { 50% { opacity: 0; } }
+  .blink { animation: blinker 1s linear infinite; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Top App Bar */
+  header.topbar {
+    background: var(--surface-container);
+    border-bottom: 2px solid var(--on-surface);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 20px;
+    height: 64px;
+    z-index: 50;
+    position: sticky;
+    top: 0;
+  }
+
+  @media (min-width: 768px) {
+    header.topbar { padding: 0 64px; }
+  }
+
+  .topbar-left, .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    color: var(--on-surface-variant);
+    display: flex;
+    gap: 8px;
+    direction: ltr;
+  }
+
+  .breadcrumb .active {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  .terminal-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--on-surface);
+  }
+
+  .terminal-title::after {
+    content: '_';
+    margin-right: 2px;
+    animation: blinker 1s linear infinite;
+  }
+
+  .icon-btn {
+    cursor: pointer;
+    color: var(--on-surface-variant);
+    padding: 4px;
+    transition: background 0.2s;
+  }
+
+  .icon-btn:hover { background: var(--tertiary-fixed); }
+
+  /* Layout */
+  .layout {
+    display: flex;
+    flex: 1;
+    position: relative;
+  }
+
+  /* Side Navigation */
+  nav.sidenav {
+    display: none;
+    flex-direction: column;
+    position: fixed;
+    right: 0;
+    top: 64px;
+    height: calc(100vh - 64px);
+    z-index: 40;
+    background: var(--surface-container-high);
+    border-right: 2px solid var(--on-surface);
+    width: 240px;
+  }
+
+  @media (min-width: 768px) {
+    nav.sidenav { display: flex; }
+    main.canvas { margin-right: 240px; }
+  }
+
+  .sidenav-header {
+    padding: 24px;
+    border-bottom: 2px solid var(--on-surface);
+  }
+
+  .sidenav-header h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .sidenav-header p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    margin-top: 4px;
+  }
+
+  .upload-btn {
+    margin-top: 16px;
+    border: 2px solid var(--on-surface);
+    background: var(--surface);
+    color: var(--on-surface);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 8px 16px;
+    cursor: pointer;
+    width: 100%;
+    text-align: right;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+  }
+
+  .upload-btn:hover { background: var(--tertiary-fixed); }
+  .upload-btn .cursor { opacity: 0; transition: opacity 0.2s; }
+  .upload-btn:hover .cursor { opacity: 1; }
+
+  .nav-list {
+    list-style: none;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .nav-list li {
+    padding: 16px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    color: var(--on-surface-variant);
+    transition: all 0.2s;
+    text-align: right;
+  }
+
+  .nav-list li:hover {
+    background: var(--tertiary-fixed);
+    transform: translateX(-4px);
+  }
+
+  .nav-list li.active {
+    background: var(--surface);
+    color: var(--on-surface);
+    font-weight: 700;
+  }
+
+  .nav-list .material-symbols-outlined { font-size: 20px; }
+
+  .sidenav-footer {
+    border-top: 2px solid var(--on-surface);
+    padding: 16px;
+  }
+
+  .sidenav-footer ul { list-style: none; }
+
+  .sidenav-footer li {
+    padding: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .sidenav-footer li:hover {
+    background: var(--tertiary-fixed);
+    transform: translateX(-4px);
+  }
+
+  .sidenav-footer .material-symbols-outlined { font-size: 16px; }
+
+  /* Main Canvas */
+  main.canvas {
+    flex: 1;
+    padding: 20px;
+    min-height: calc(100vh - 64px);
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  @media (min-width: 768px) {
+    main.canvas { padding: 64px; }
+  }
+
+  .ascii-deco {
+    position: absolute;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    opacity: 0.5;
+    white-space: pre;
+    line-height: 1;
+    direction: ltr;
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .ascii-deco { display: block; }
+  }
+
+  .ascii-top { top: 32px; left: 32px; }
+  .ascii-bottom { bottom: 32px; right: 32px; }
+
+  /* HOME VIEW */
+  .home-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    margin-top: 64px;
+  }
+
+  @media (min-width: 768px) {
+    .home-content { margin-top: 96px; }
+  }
+
+  .home-title {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(40px, 8vw, 80px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    text-align: center;
+    color: var(--on-surface);
+    opacity: 0.2;
+    margin-bottom: 64px;
+  }
+
+  .folders-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 64px;
+    position: relative;
+  }
+
+  @media (min-width: 768px) {
+    .folders-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 64px 96px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .folders-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* Manila folder */
+  .manila-folder {
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s;
+    background: none;
+    border: none;
+    padding: 0;
+    width: 100%;
+    text-align: right;
+    font-family: 'Heebo', sans-serif;
+  }
+
+  .manila-folder:hover { transform: translateY(-8px) rotate(1deg); }
+  .manila-folder:nth-child(2):hover { transform: translateY(-8px) rotate(-1deg); }
+  .manila-folder:nth-child(3):hover { transform: translateY(-8px) rotate(2deg); }
+  .manila-folder:nth-child(5):hover { transform: translateY(-8px) rotate(1deg); }
+
+  /* Asymmetric layout for desktop */
+  @media (min-width: 1024px) {
+    .manila-folder:nth-child(1) { grid-column: 2 / 4; }
+    .manila-folder:nth-child(2) { margin-top: -64px; }
+    .manila-folder:nth-child(3) { grid-column: 1 / 2; }
+    .manila-folder:nth-child(4) { grid-column: 1 / 3; margin-top: 32px; }
+    .manila-folder:nth-child(5) { grid-column: 3 / 4; margin-top: -96px; }
+  }
+
+  .folder-shadow {
+    position: absolute;
+    inset: -8px;
+    background: var(--primary);
+    transform: translate(-8px, 8px);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: -1;
+  }
+
+  .manila-folder:hover .folder-shadow { opacity: 1; }
+
+  .folder-tab {
+    background: var(--tab-color);
+    width: 192px;
+    height: 40px;
+    border: 2px solid var(--on-surface);
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--on-surface);
+  }
+
+  .folder-body {
+    background: var(--surface);
+    border: 2px solid var(--on-surface);
+    padding: 32px;
+    box-shadow: 4px 4px 0px 0px var(--primary);
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    z-index: 10;
+  }
+
+  .folder-body h3 {
+    font-family: 'Heebo', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--on-surface);
+    margin-bottom: 16px;
+  }
+
+  .folder-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+  }
+
+  .chip {
+    background: var(--ink-chip);
+    color: var(--chip-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 8px;
+    direction: ltr;
+  }
+
+  .ascii-divider {
+    margin: 96px 0 48px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    direction: ltr;
+  }
+
+  /* FOLDER VIEW */
+  .folder-view {
+    display: none;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .folder-view.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .folder-header {
+    border-bottom: 2px solid var(--on-surface);
+    padding-bottom: 24px;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .folder-header-meta {
+    position: absolute;
+    top: 16px;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    line-height: 1.6;
+    direction: ltr;
+    text-align: left;
+  }
+
+  .folder-header-breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    margin-bottom: 8px;
+    direction: ltr;
+    text-align: left;
+  }
+
+  .folder-header h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-align: left;
+    direction: ltr;
+    color: var(--on-surface);
+  }
+
+  /* Project layout */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  @media (min-width: 768px) {
+    .projects-grid {
+      grid-template-columns: repeat(12, 1fr);
+      gap: 24px;
+    }
+  }
+
+  .empty-state {
+    grid-column: span 12;
+    padding: 96px 32px;
+    text-align: center;
+    border: 2px dashed var(--on-surface-variant);
+    background: var(--surface);
+  }
+
+  .empty-state .ascii-icon {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.3;
+    white-space: pre;
+    color: var(--on-surface-variant);
+    margin-bottom: 24px;
+  }
+
+  .empty-state p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    line-height: 1.8;
+  }
+
+  /* Back button */
+  .back-btn {
+    background: var(--surface);
+    border: 2px solid var(--on-surface);
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--on-surface);
+    margin-bottom: 32px;
+    transition: all 0.2s;
+    direction: ltr;
+  }
+
+  .back-btn:hover {
+    background: var(--on-surface);
+    color: var(--surface);
+  }
+</style>
+</head>
+<body>
+
+<!-- Top App Bar -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="material-symbols-outlined icon-btn">grid_view</span>
+    <div class="breadcrumb" id="breadcrumb">
+      <span>~/root/archives</span>
+      <span>/</span>
+      <span class="active">~/BenAmi.project</span>
+    </div>
+  </div>
+  <div class="terminal-title">ARCHIVE_01.EXE</div>
+  <div class="topbar-right">
+    <span class="material-symbols-outlined icon-btn" onclick="goBack()">arrow_forward</span>
+    <span class="material-symbols-outlined icon-btn">arrow_back</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Main Canvas -->
+  <main class="canvas">
+
+    <!-- ASCII Decorations -->
+    <div class="ascii-deco ascii-top">+---------------+
+| DATA_CORPUS_1 |
+| STATUS: OK    |
++---------------+</div>
+    <div class="ascii-deco ascii-bottom">SYS.REQ: TRUE
+MEM: 1024K
+LOAD: 100%</div>
+
+    <!-- HOME VIEW -->
+    <div id="homeView" class="home-content">
+      <h2 class="home-title">ARCHIVE // 2026</h2>
+
+      <div class="folders-grid">
+        <button class="manila-folder" onclick="openFolder('woodworking')">
+          <div class="folder-shadow"></div>
+          <div class="folder-tab">01_WOOD.DAT</div>
+          <div class="folder-body">
+            <h3>נגרות</h3>
+            <div class="folder-meta">
+              <span class="chip">&gt; ITEMS: 00</span>
+              <span class="chip">SIZE: --</span>
+            </div>
+          </div>
+        </button>
+
+        <button class="manila-folder" onclick="openFolder('gardening')">
+          <div class="folder-shadow"></div>
+          <div class="folder-tab">02_GARDEN.DAT</div>
+          <div class="folder-body">
+            <h3>גינון</h3>
+            <div class="folder-meta">
+              <span class="chip">&gt; ITEMS: 00</span>
+            </div>
+          </div>
+        </button>
+
+        <button class="manila-folder" onclick="openFolder('sports')">
+          <div class="folder-shadow"></div>
+          <div class="folder-tab">03_SPORT.DAT</div>
+          <div class="folder-body">
+            <h3>ספורט</h3>
+            <div class="folder-meta">
+              <span class="chip">&gt; ITEMS: 00</span>
+            </div>
+          </div>
+        </button>
+
+        <button class="manila-folder" onclick="openFolder('tech')">
+          <div class="folder-shadow"></div>
+          <div class="folder-tab">04_TECH.DAT</div>
+          <div class="folder-body">
+            <h3>טכנולוגיה</h3>
+            <div class="folder-meta">
+              <span class="chip">&gt; ITEMS: 00</span>
+              <span class="chip">SIZE: --</span>
+            </div>
+          </div>
+        </button>
+
+        <button class="manila-folder" onclick="openFolder('other')">
+          <div class="folder-shadow"></div>
+          <div class="folder-tab">05_OTHER.DAT</div>
+          <div class="folder-body">
+            <h3>אחר</h3>
+            <div class="folder-meta">
+              <span class="chip">&gt; ITEMS: --</span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div class="ascii-divider">
+        <span>&lt;---/</span>
+        <span class="blink">_</span>
+        <span>/---&gt;</span>
+      </div>
+    </div>
+
+    <!-- FOLDER VIEWS -->
+    <div id="woodworking" class="folder-view">
+      <button class="back-btn" onclick="goBack()">← back</button>
+      <div class="folder-header">
+        <div class="folder-header-meta">TOTAL_ITEMS: 00<br>LAST_MODIFIED: 2026-05-09</div>
+        <div class="folder-header-breadcrumb">~/BenAmi.project/<span style="color: var(--primary);">נגרות</span></div>
+        <h2>WOODWORKING_DIR</h2>
+      </div>
+      <div class="projects-grid">
+        <div class="empty-state">
+          <div class="ascii-icon">+--------+
+|  EMPTY |
+|  DIR   |
++--------+</div>
+          <p>// אין עדיין פריטים בתיקייה<br>// ערוך את הקובץ כדי להוסיף פרויקטים</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="gardening" class="folder-view">
+      <button class="back-btn" onclick="goBack()">← back</button>
+      <div class="folder-header">
+        <div class="folder-header-meta">TOTAL_ITEMS: 00<br>LAST_MODIFIED: 2026-05-09</div>
+        <div class="folder-header-breadcrumb">~/BenAmi.project/<span style="color: var(--primary);">גינון</span></div>
+        <h2>GARDENING_DIR</h2>
+      </div>
+      <div class="projects-grid">
+        <div class="empty-state">
+          <div class="ascii-icon">+--------+
+|  EMPTY |
+|  DIR   |
++--------+</div>
+          <p>// אין עדיין פריטים בתיקייה</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="sports" class="folder-view">
+      <button class="back-btn" onclick="goBack()">← back</button>
+      <div class="folder-header">
+        <div class="folder-header-meta">TOTAL_ITEMS: 00<br>LAST_MODIFIED: 2026-05-09</div>
+        <div class="folder-header-breadcrumb">~/BenAmi.project/<span style="color: var(--primary);">ספורט</span></div>
+        <h2>SPORTS_DIR</h2>
+      </div>
+      <div class="projects-grid">
+        <div class="empty-state">
+          <div class="ascii-icon">+--------+
+|  EMPTY |
+|  DIR   |
++--------+</div>
+          <p>// אין עדיין פריטים בתיקייה</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="tech" class="folder-view">
+      <button class="back-btn" onclick="goBack()">← back</button>
+      <div class="folder-header">
+        <div class="folder-header-meta">TOTAL_ITEMS: 00<br>LAST_MODIFIED: 2026-05-09</div>
+        <div class="folder-header-breadcrumb">~/BenAmi.project/<span style="color: var(--primary);">טכנולוגיה</span></div>
+        <h2>TECH_DIR</h2>
+      </div>
+      <div class="projects-grid">
+        <div class="empty-state">
+          <div class="ascii-icon">+--------+
+|  EMPTY |
+|  DIR   |
++--------+</div>
+          <p>// אין עדיין פריטים בתיקייה</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="other" class="folder-view">
+      <button class="back-btn" onclick="goBack()">← back</button>
+      <div class="folder-header">
+        <div class="folder-header-meta">TOTAL_ITEMS: 00<br>LAST_MODIFIED: 2026-05-09</div>
+        <div class="folder-header-breadcrumb">~/BenAmi.project/<span style="color: var(--primary);">אחר</span></div>
+        <h2>OTHER_DIR</h2>
+      </div>
+      <div class="projects-grid">
+        <div class="empty-state">
+          <div class="ascii-icon">+--------+
+|  EMPTY |
+|  DIR   |
++--------+</div>
+          <p>// אין עדיין פריטים בתיקייה</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Side Navigation -->
+  <nav class="sidenav">
+    <div class="sidenav-header">
+      <h1>INDEX_2026</h1>
+      <p>LOCAL_STORAGE</p>
+      <button class="upload-btn">
+        <span>UPLOAD_NEW.SH</span>
+        <span class="cursor">_</span>
+      </button>
+    </div>
+
+    <ul class="nav-list" id="navList">
+      <li onclick="openFolder('woodworking')" data-key="woodworking">
+        WOODWORKING
+        <span class="material-symbols-outlined">folder_open</span>
+      </li>
+      <li onclick="openFolder('gardening')" data-key="gardening">
+        GARDENING
+        <span class="material-symbols-outlined">eco</span>
+      </li>
+      <li onclick="openFolder('sports')" data-key="sports">
+        SPORTS
+        <span class="material-symbols-outlined">fitness_center</span>
+      </li>
+      <li onclick="openFolder('tech')" data-key="tech">
+        TECH
+        <span class="material-symbols-outlined">terminal</span>
+      </li>
+      <li onclick="openFolder('other')" data-key="other">
+        OTHER
+        <span class="material-symbols-outlined">folder_shared</span>
+      </li>
+    </ul>
+
+    <div class="sidenav-footer">
+      <ul>
+        <li>SETTINGS <span class="material-symbols-outlined">settings</span></li>
+        <li>LOGOUT <span class="material-symbols-outlined">logout</span></li>
+      </ul>
+    </div>
+  </nav>
+
+</div>
+
+<script>
+  function openFolder(name) {
+    document.getElementById('homeView').style.display = 'none';
+    document.querySelectorAll('.folder-view').forEach(v => v.classList.remove('active'));
+    document.getElementById(name).classList.add('active');
+
+    document.getElementById('breadcrumb').innerHTML =
+      '<span>~/BenAmi.project</span><span>/</span><span class="active">' + name + '</span>';
+
+    document.querySelectorAll('.nav-list li').forEach(li => li.classList.remove('active'));
+    const activeLi = document.querySelector('.nav-list li[data-key="' + name + '"]');
+    if (activeLi) activeLi.classList.add('active');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goBack() {
+    document.querySelectorAll('.folder-view').forEach(v => v.classList.remove('active'));
+    document.getElementById('homeView').style.display = 'block';
+    document.getElementById('breadcrumb').innerHTML =
+      '<span>~/root/archives</span><span>/</span><span class="active">~/BenAmi.project</span>';
+    document.querySelectorAll('.nav-list li').forEach(li => li.classList.remove('active'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
