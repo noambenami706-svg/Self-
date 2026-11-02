@@ -1,0 +1,32 @@
+{
+  "enabledPlugins": {
+    "godot-development@claude-code-game-development": true,
+    "unity-development@claude-code-game-development": true,
+    "unreal-engine@claude-code-game-development": true,
+    "game-architecture@claude-code-game-development": true,
+    "input-systems@claude-code-game-development": true,
+    "save-systems@claude-code-game-development": true,
+    "localization@claude-code-game-development": true,
+    "shader-programming@claude-code-game-development": true,
+    "animation-systems@claude-code-game-development": true,
+    "audio-systems@claude-code-game-development": true,
+    "ui-game-design@claude-code-game-development": true,
+    "ai-game-behavior@claude-code-game-development": true,
+    "physics-simulation@claude-code-game-development": true,
+    "procedural-generation@claude-code-game-development": true,
+    "level-design@claude-code-game-development": true,
+    "playtesting@claude-code-game-development": true,
+    "performance-optimization@claude-code-game-development": true,
+    "asset-pipelines@claude-code-game-development": true,
+    "multiplayer-networking@claude-code-game-development": true,
+    "monetization-ethics@claude-code-game-development": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-code-game-development": {
+      "source": {
+        "source": "github",
+        "repo": "HermeticOrmus/claude-code-game-development"
+      }
+    }
+  }
+}
