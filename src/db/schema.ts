@@ -135,3 +135,12 @@ export const conversation = sqliteTable("conversation", {
   content: text("content").notNull(), // JSON של בלוקי התוכן
   createdAt: createdAt(),
 });
+
+/** מעקב משקל. */
+export const weightLog = sqliteTable("weight_log", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  date: text("date").notNull(), // YYYY-MM-DD
+  kg: real("kg").notNull(),
+  note: text("note"),
+  createdAt: createdAt(),
+});

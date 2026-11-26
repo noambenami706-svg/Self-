@@ -177,6 +177,33 @@ const setNutritionPlan = betaZodTool({
   },
 });
 
+// ---------- משקל ----------
+
+const logWeight = betaZodTool({
+  name: "log_weight",
+  description: "רושם שקילה. אם לא ניתן תאריך – היום.",
+  inputSchema: z.object({
+    kg: z.number().min(30).max(200),
+    date: z.string().optional().describe("YYYY-MM-DD"),
+    note: z.string().optional(),
+  }),
+  run: async ({ kg, date, note }) => {
+    const d = date ?? new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+    await db.insert(schema.weightLog).values({ date: d, kg, note: note ?? null });
+    return `נרשם: ${kg} ק"ג (${d})`;
+  },
+});
+
+const getWeightHistory = betaZodTool({
+  name: "get_weight_history",
+  description: "כל השקילות, מהישנה לחדשה.",
+  inputSchema: z.object({}),
+  run: async () => {
+    const rows = await db.select().from(schema.weightLog).orderBy(asc(schema.weightLog.date), asc(schema.weightLog.id));
+    return rows.length ? rows.map((r) => `${r.date}: ${r.kg} ק"ג${r.note ? ` (${r.note})` : ""}`).join("\n") : "אין שקילות רשומות.";
+  },
+});
+
 export const tools = [
   getFacts,
   rememberFact,
@@ -188,4 +215,6 @@ export const tools = [
   deleteWorkoutDay,
   getNutritionPlan,
   setNutritionPlan,
+  logWeight,
+  getWeightHistory,
 ];
