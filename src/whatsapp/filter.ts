@@ -1,33 +1,39 @@
-import { areJidsSameUser, isJidGroup, normalizeMessageContent, type WAMessage, type WASocket } from "baileys";
+import { type WAMessage, isJidGroup, jidNormalizedUser } from "baileys";
+import { config } from "../config.js";
+import { messageText, type WhatsApp } from "./client.js";
 
-/** הטקסט של ההודעה (הודעה רגילה, הודעה עם ציטוט, או כיתוב של תמונה/קובץ). */
-export function messageText(msg: WAMessage): string {
-  const m = normalizeMessageContent(msg.message);
-  return (
-    m?.conversation ??
-    m?.extendedTextMessage?.text ??
-    m?.imageMessage?.caption ??
-    m?.documentMessage?.caption ??
-    m?.videoMessage?.caption ??
-    ""
-  ).trim();
-}
+export type Incoming =
+  | { kind: "command"; text: string; msg: WAMessage }
+  | { kind: "group"; groupId: string; text: string; msg: WAMessage }
+  | { kind: "ignore" };
 
-/** האם זו הודעה שכתבתי בצ'אט "הודעה לעצמי". */
-export function isSelfChat(sock: WASocket, msg: WAMessage): boolean {
-  const jid = msg.key.remoteJid ?? undefined;
-  if (!msg.key.fromMe || !jid || isJidGroup(jid)) return false;
-  return areJidsSameUser(jid, sock.user?.id) || areJidsSameUser(jid, sock.user?.lid);
-}
+/**
+ * מחליט מה לעשות עם הודעה:
+ * - "הודעה לעצמי" שמתחילה בקידומת (/בוט) → פקודה לבוט
+ * - הודעה בקבוצה שברשימה הלבנה → נשמרת לניתוח
+ * - כל השאר → נזרק מיד, בלי לשמור ובלי לשלוח לשום מקום
+ */
+export function classify(msg: WAMessage, wa: WhatsApp): Incoming {
+  const key = msg.key;
+  if (!key.remoteJid || !msg.message) return { kind: "ignore" };
+  if (key.id && wa.sentByBot.has(key.id)) return { kind: "ignore" };
 
-/** האם ההודעה הגיעה מאחת הקבוצות ברשימה הלבנה. */
-export function isAllowedGroup(msg: WAMessage, allowedGroupIds: string[]): boolean {
-  const jid = msg.key.remoteJid ?? "";
-  return isJidGroup(jid) === true && allowedGroupIds.includes(jid);
-}
+  const text = messageText(msg);
 
-/** מחזיר את הטקסט בלי הקידומת, או null אם ההודעה לא מתחילה בקידומת. */
-export function stripPrefix(text: string, prefix: string): string | null {
-  if (!text.startsWith(prefix)) return null;
-  return text.slice(prefix.length).trim();
+  // קבוצה מורשית
+  if (isJidGroup(key.remoteJid)) {
+    if (!config.WHATSAPP_GROUP_IDS.includes(key.remoteJid) || !text) return { kind: "ignore" };
+    return { kind: "group", groupId: key.remoteJid, text, msg };
+  }
+
+  // הודעה לעצמי
+  const chat = [key.remoteJid, key.remoteJidAlt]
+    .filter((j): j is string => !!j)
+    .map((j) => jidNormalizedUser(j));
+  const isSelfChat = key.fromMe && chat.some((j) => wa.selfJids.has(j));
+  if (isSelfChat && text.startsWith(config.BOT_PREFIX)) {
+    return { kind: "command", text: text.slice(config.BOT_PREFIX.length).trim(), msg };
+  }
+
+  return { kind: "ignore" };
 }

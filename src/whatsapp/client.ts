@@ -1,12 +1,11 @@
-import { rmSync } from "node:fs";
 import path from "node:path";
 import makeWASocket, {
-  Browsers,
   DisconnectReason,
-  fetchLatestBaileysVersion,
-  useMultiFileAuthState,
   type WAMessage,
   type WASocket,
+  fetchLatestBaileysVersion,
+  jidNormalizedUser,
+  useMultiFileAuthState,
 } from "baileys";
 import pino from "pino";
 import qrcode from "qrcode-terminal";
@@ -14,70 +13,94 @@ import { DATA_DIR } from "../db/index.js";
 
 const SESSION_DIR = path.join(DATA_DIR, "wa-session");
 
-export type WhatsAppHandlers = {
-  /** נקרא בכל פעם שהחיבור נפתח (גם אחרי התחברות מחדש). */
-  onOpen?: (sock: WASocket) => void | Promise<void>;
-  /** נקרא על כל הודעה חדשה (לא היסטוריה). */
-  onMessage?: (sock: WASocket, msg: WAMessage) => void | Promise<void>;
-};
-
-function statusCodeOf(error: unknown): number | undefined {
-  const output = (error as { output?: { statusCode?: unknown } } | undefined)?.output;
-  return typeof output?.statusCode === "number" ? output.statusCode : undefined;
+export interface WhatsAppHandlers {
+  /** נקרא על כל הודעה חדשה (כולל הודעות שאני שולח). */
+  onMessage: (msg: WAMessage, wa: WhatsApp) => void | Promise<void>;
+  /** נקרא כשהחיבור מוכן. */
+  onReady?: (wa: WhatsApp) => void | Promise<void>;
 }
 
-/**
- * מתחבר לווטסאפ כמו WhatsApp Web. בפעם הראשונה מציג QR לסריקה,
- * ואחר כך משתמש ב-session השמור ב-data/wa-session.
- * מתחבר מחדש אוטומטית אם החיבור נופל.
- */
-export async function connectWhatsApp(handlers: WhatsAppHandlers = {}): Promise<void> {
+export interface WhatsApp {
+  sock: WASocket;
+  /** כל המזהים של הצ'אט "הודעה לעצמי" (מספר טלפון + LID). */
+  selfJids: Set<string>;
+  /** שולח הודעה לצ'אט "הודעה לעצמי" בלבד. */
+  sendToSelf: (text: string) => Promise<void>;
+  /** מזהי הודעות שהבוט עצמו שלח – כדי לא לענות לעצמו. */
+  sentByBot: Set<string>;
+}
+
+/** מתחבר לווטסאפ. בפעם הראשונה מציג QR לסריקה; אחר כך נכנס לבד. */
+export async function startWhatsApp(handlers: WhatsAppHandlers): Promise<void> {
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
   const sock = makeWASocket({
     version,
     auth: state,
-    browser: Browsers.windows("Desktop"),
-    logger: pino({ level: process.env.WA_LOG_LEVEL ?? "silent" }),
-    markOnlineOnConnect: false, // שהטלפון ימשיך לקבל התראות כרגיל
+    logger: pino({ level: "silent" }),
+    markOnlineOnConnect: false, // לא להופיע "מחובר" בגלל הבוט
     syncFullHistory: false,
   });
 
   sock.ev.on("creds.update", saveCreds);
 
+  const sentByBot = new Set<string>();
+  const wa: WhatsApp = {
+    sock,
+    selfJids: new Set(),
+    sentByBot,
+    async sendToSelf(text) {
+      const to = sock.user?.id ? jidNormalizedUser(sock.user.id) : undefined;
+      if (!to) throw new Error("ווטסאפ עוד לא מחובר");
+      const sent = await sock.sendMessage(to, { text });
+      if (sent?.key.id) sentByBot.add(sent.key.id);
+    },
+  };
+
   sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
     if (qr) {
-      console.log("\n📱 סרוק את הקוד עם הטלפון:");
-      console.log("   ווטסאפ ← ⋮ (או הגדרות) ← מכשירים מקושרים ← קישור מכשיר\n");
+      console.log("\n📱 סרוק את הקוד: ווטסאפ ← ⋮ ← מכשירים מקושרים ← קישור מכשיר\n");
       qrcode.generate(qr, { small: true });
     }
-
     if (connection === "open") {
+      wa.selfJids.clear();
+      if (sock.user?.id) wa.selfJids.add(jidNormalizedUser(sock.user.id));
+      if (sock.user?.lid) wa.selfJids.add(jidNormalizedUser(sock.user.lid));
       console.log("✅ ווטסאפ מחובר");
-      await handlers.onOpen?.(sock);
+      await handlers.onReady?.(wa);
     }
-
     if (connection === "close") {
-      const code = statusCodeOf(lastDisconnect?.error);
+      const code = (lastDisconnect?.error as { output?: { statusCode?: number } } | undefined)?.output?.statusCode;
       if (code === DisconnectReason.loggedOut) {
-        console.log("⚠️ המכשיר נותק מהטלפון. מוחק את ה-session ומציג QR חדש...");
-        rmSync(SESSION_DIR, { recursive: true, force: true });
-      } else if (code !== DisconnectReason.restartRequired) {
-        console.log(`🔄 החיבור לווטסאפ נפל (${code ?? "?"}), מתחבר מחדש...`);
+        console.log("❌ התנתקת מווטסאפ. מחק את התיקייה data\\wa-session והפעל שוב כדי לסרוק QR חדש.");
+        process.exit(1);
       }
-      setTimeout(() => void connectWhatsApp(handlers), code === DisconnectReason.restartRequired ? 0 : 3000);
+      console.log("🔄 החיבור לווטסאפ נפל, מתחבר מחדש...");
+      setTimeout(() => void startWhatsApp(handlers), 3000);
     }
   });
 
-  sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    if (type !== "notify" || !handlers.onMessage) return;
+  sock.ev.on("messages.upsert", async ({ messages }) => {
     for (const msg of messages) {
       try {
-        await handlers.onMessage(sock, msg);
-      } catch (error) {
-        console.error("❌ שגיאה בטיפול בהודעה:", error);
+        await handlers.onMessage(msg, wa);
+      } catch (err) {
+        console.error("שגיאה בטיפול בהודעה:", err);
       }
     }
   });
+}
+
+/** שולף את הטקסט מהודעה (טקסט רגיל, טקסט מורחב, או כיתוב של תמונה/קובץ). */
+export function messageText(msg: WAMessage): string {
+  const m = msg.message;
+  return (
+    m?.conversation ??
+    m?.extendedTextMessage?.text ??
+    m?.imageMessage?.caption ??
+    m?.documentMessage?.caption ??
+    m?.documentWithCaptionMessage?.message?.documentMessage?.caption ??
+    ""
+  ).trim();
 }
