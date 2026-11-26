@@ -1,9 +1,9 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
+import { migrate } from "drizzle-orm/libsql/migrator";
 import * as schema from "./schema.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -12,15 +12,16 @@ const DB_PATH = path.join(DATA_DIR, "bot.db");
 
 mkdirSync(DATA_DIR, { recursive: true });
 
-const sqlite = new Database(DB_PATH);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
+// libsql מגיע עם קבצים מוכנים ל-Windows/Mac/Linux, בלי צורך ב-Visual Studio.
+const client = createClient({ url: pathToFileURL(DB_PATH).href });
 
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(client, { schema });
 
 /** מריץ את כל המיגרציות שעוד לא רצו (יוצר/מעדכן טבלאות). */
-export function migrateDb(): void {
-  migrate(db, { migrationsFolder: path.join(root, "drizzle") });
+export async function migrateDb(): Promise<void> {
+  await client.execute("PRAGMA journal_mode = WAL");
+  await client.execute("PRAGMA foreign_keys = ON");
+  await migrate(db, { migrationsFolder: path.join(root, "drizzle") });
 }
 
 export { schema, DB_PATH };

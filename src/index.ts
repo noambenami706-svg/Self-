@@ -8,8 +8,8 @@ function status(ok: boolean, label: string, hint?: string) {
 
 console.log("🤖 הסוכן האישי – בדיקת מצב\n");
 
-migrateDb();
-const [facts] = db.select({ n: count() }).from(schema.facts).all();
+await migrateDb();
+const [facts] = await db.select({ n: count() }).from(schema.facts);
 status(true, `מסד נתונים: ${DB_PATH} (${facts?.n ?? 0} עובדות שמורות)`);
 
 status(!!config.ANTHROPIC_API_KEY, "Claude API", "הוסף ANTHROPIC_API_KEY ל-.env והרץ npm run check-claude");
