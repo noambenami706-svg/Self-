@@ -15,6 +15,13 @@
       "when": 1795731545786,
       "tag": "0001_weight_log",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795731906789,
+      "tag": "0002_timetable_times",
+      "breakpoints": true
     }
   ]
 }

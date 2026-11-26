@@ -177,6 +177,72 @@ const setNutritionPlan = betaZodTool({
   },
 });
 
+// ---------- מערכת שעות ----------
+
+const DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] as const;
+
+const lessonSchema = z.object({
+  lesson: z.number().int().min(0).max(12),
+  start: z.string().optional().describe("HH:MM"),
+  end: z.string().optional().describe("HH:MM"),
+  subject: z.string(),
+  code: z.string().optional().describe("המספר בסוגריים המרובעים, למשל 15488"),
+  teacher: z.string().optional(),
+  room: z.string().optional(),
+  needs_sports_shoes: z.boolean().describe("true רק לשיעור מעשי של ספורט (לפי הכללים בהנחיות)"),
+});
+
+const getTimetable = betaZodTool({
+  name: "get_timetable",
+  description: "המערכת הקבועה של נועם (בלי ביטולים). יום אחד או כל השבוע.",
+  inputSchema: z.object({ day: z.enum(DAYS).optional() }),
+  run: async ({ day }) => {
+    const rows = await db
+      .select()
+      .from(schema.timetable)
+      .where(day ? eq(schema.timetable.dayOfWeek, DAYS.indexOf(day)) : undefined)
+      .orderBy(asc(schema.timetable.dayOfWeek), asc(schema.timetable.lesson));
+    if (!rows.length) return "אין מערכת שעות שמורה עדיין.";
+    return rows
+      .map(
+        (r) =>
+          `${DAYS[r.dayOfWeek]} ${r.lesson}. ${r.startTime ?? ""}-${r.endTime ?? ""} ${r.subject}` +
+          `${r.code ? ` [${r.code}]` : ""}${r.teacher ? ` | ${r.teacher}` : ""}${r.room ? ` | ${r.room}` : ""}` +
+          `${r.isSports ? " | 👟 נעלי ספורט" : ""}`,
+      )
+      .join("\n");
+  },
+});
+
+const setTimetableDay = betaZodTool({
+  name: "set_timetable_day",
+  description: "מחליף את המערכת הקבועה של יום אחד (למשל מצילום מסך של משו\"ב).",
+  inputSchema: z.object({ day: z.enum(DAYS), lessons: z.array(lessonSchema) }),
+  run: async ({ day, lessons }) => {
+    const dow = DAYS.indexOf(day);
+    await db.transaction(async (tx) => {
+      await tx.delete(schema.timetable).where(eq(schema.timetable.dayOfWeek, dow));
+      if (lessons.length) {
+        await tx.insert(schema.timetable).values(
+          lessons.map((l) => ({
+            source: "mashov" as const,
+            dayOfWeek: dow,
+            lesson: l.lesson,
+            startTime: l.start ?? null,
+            endTime: l.end ?? null,
+            subject: l.subject,
+            code: l.code ?? null,
+            teacher: l.teacher ?? null,
+            room: l.room ?? null,
+            isSports: l.needs_sports_shoes,
+          })),
+        );
+      }
+    });
+    return `נשמרו ${lessons.length} שיעורים ליום ${day}.`;
+  },
+});
+
 // ---------- משקל ----------
 
 const logWeight = betaZodTool({
@@ -217,4 +283,6 @@ export const tools = [
   setNutritionPlan,
   logWeight,
   getWeightHistory,
+  getTimetable,
+  setTimetableDay,
 ];

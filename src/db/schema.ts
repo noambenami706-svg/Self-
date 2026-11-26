@@ -18,9 +18,14 @@ export const timetable = sqliteTable("timetable", {
   source: text("source", { enum: ["mashov", "shahaf"] }).notNull(),
   dayOfWeek: integer("day_of_week").notNull(),
   lesson: integer("lesson").notNull(),
+  startTime: text("start_time"), // HH:MM
+  endTime: text("end_time"),
   subject: text("subject").notNull(),
+  /** קוד הקבוצה במשו"ב, למשל 15488 – לזיהוי השיעורים שלי מתוך המערכת של כל הכיתה בשחף. */
+  code: text("code"),
   teacher: text("teacher"),
   room: text("room"),
+  /** האם צריך נעלי ספורט בשיעור הזה. */
   isSports: integer("is_sports", { mode: "boolean" }).notNull().default(false),
 });
 
