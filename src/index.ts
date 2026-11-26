@@ -1,9 +1,12 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { count } from "drizzle-orm";
+import { runAgent } from "./agent/agent.js";
 import { config } from "./config.js";
 import { DB_PATH, db, migrateDb, schema } from "./db/index.js";
 import { startWhatsApp } from "./whatsapp/client.js";
 import { classify } from "./whatsapp/filter.js";
 import { allowedGroups, resolveAllowedGroups } from "./whatsapp/groups.js";
+import { extractAttachment } from "./whatsapp/media.js";
 
 function status(ok: boolean, label: string, hint?: string) {
   console.log(`${ok ? "✅" : "⬜"} ${label}${!ok && hint ? `  ← ${hint}` : ""}`);
@@ -20,6 +23,14 @@ status(groupCount > 0, `קבוצות ווטסאפ (${groupCount})`, "npm run lis
 status(!!config.MASHOV_USERNAME, "משו\"ב", "שלב 5");
 status(!!config.SHAHAF_USERNAME, "שחף", "שלב 6");
 console.log(`\nתדריך בוקר: ${config.MORNING_BRIEFING_TIME} · קידומת: ${config.BOT_PREFIX}\n`);
+
+function friendlyError(err: unknown): string {
+  if (err instanceof Anthropic.AuthenticationError) return "❌ מפתח ה-API לא תקין. בדוק אותו בקובץ .env";
+  if (err instanceof Anthropic.PermissionDeniedError) return "❌ אין קרדיט בחשבון Claude (Billing ב-console.anthropic.com)";
+  if (err instanceof Anthropic.RateLimitError) return "⏳ יותר מדי בקשות, נסה שוב בעוד דקה";
+  if (err instanceof Anthropic.APIConnectionError) return "📡 אין חיבור ל-Claude כרגע, נסה שוב";
+  return "❌ משהו השתבש. נסה שוב, ואם זה חוזר תסתכל בחלון של הבוט במחשב.";
+}
 
 const startedAt = Math.floor(Date.now() / 1000) - 60;
 
@@ -47,12 +58,24 @@ await startWhatsApp({
     }
 
     if (incoming.kind === "command") {
-      console.log(`💬 קיבלתי: ${incoming.text}`);
-      // שלב 1: Claude עוד לא מחובר – רק מאשרים שהחיבור עובד.
-      const reply = config.ANTHROPIC_API_KEY
-        ? `✅ קיבלתי: "${incoming.text}". הסוכן החכם יחובר בשלב הבא.`
-        : `✅ הבוט מחובר ושומע אותך. Claude יחובר אחרי שיתווסף מפתח API.`;
-      await wa.sendToSelf(reply);
+      console.log(`💬 ${incoming.text}`);
+      if (!config.ANTHROPIC_API_KEY) {
+        await wa.sendToSelf("✅ הבוט מחובר ושומע אותך. Claude יחובר אחרי שיתווסף מפתח API.");
+        return;
+      }
+      try {
+        const attachment = await extractAttachment(incoming.msg);
+        if (attachment && "error" in attachment) {
+          await wa.sendToSelf(attachment.error);
+          return;
+        }
+        await wa.sock.sendPresenceUpdate("composing", msg.key.remoteJid ?? undefined);
+        const reply = await runAgent(incoming.text, attachment);
+        await wa.sendToSelf(reply);
+      } catch (err) {
+        console.error("שגיאה בסוכן:", err);
+        await wa.sendToSelf(friendlyError(err));
+      }
     }
   },
   async onReady(wa) {

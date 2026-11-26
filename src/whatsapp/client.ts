@@ -12,6 +12,13 @@ import pino from "pino";
 import qrcode from "qrcode-terminal";
 import { DATA_DIR } from "../db/index.js";
 
+// ספריית ההצפנה של ווטסאפ מדפיסה מפתחות למסך ("Closing session: ..."). משתיקים את זה.
+const originalInfo = console.info;
+console.info = (...args: unknown[]) => {
+  if (typeof args[0] === "string" && /^(Closing|Opening|Removing old closed|Migrating) session/.test(args[0])) return;
+  originalInfo(...args);
+};
+
 const SESSION_DIR = path.join(DATA_DIR, "wa-session");
 
 export interface WhatsAppHandlers {
