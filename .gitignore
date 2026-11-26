@@ -1,0 +1,6 @@
+node_modules/
+# סודות ומידע אישי – לעולם לא עולים ל-GitHub
+.env
+data/
+*.db
+*.db-*
