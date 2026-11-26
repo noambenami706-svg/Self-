@@ -5,6 +5,7 @@ import makeWASocket, {
   type WASocket,
   fetchLatestBaileysVersion,
   jidNormalizedUser,
+  normalizeMessageContent,
   useMultiFileAuthState,
 } from "baileys";
 import pino from "pino";
@@ -94,7 +95,7 @@ export async function startWhatsApp(handlers: WhatsAppHandlers): Promise<void> {
 
 /** שולף את הטקסט מהודעה (טקסט רגיל, טקסט מורחב, או כיתוב של תמונה/קובץ). */
 export function messageText(msg: WAMessage): string {
-  const m = msg.message;
+  const m = normalizeMessageContent(msg.message);
   return (
     m?.conversation ??
     m?.extendedTextMessage?.text ??
