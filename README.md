@@ -58,9 +58,10 @@ npm start                # בדיקת מצב
 
 | פקודה | מה היא עושה |
 |---|---|
-| `npm start` | מפעיל את הבוט (כרגע: בדיקת מצב) |
+| `npm start` | מפעיל את הבוט. בדיקה: כותבים `/בוט פינג` ב"הודעה לעצמי" |
 | `npm run dev` | כמו start, אבל מתאתחל אוטומטית כשקוד משתנה |
 | `npm run check-claude` | בודק שמפתח ה-API עובד |
+| `npm run list-groups` | מתחבר לווטסאפ (QR) ושומר את רשימת הקבוצות ב-`data/groups.txt` |
 | `npm run typecheck` | בודק שאין שגיאות בקוד |
 | `npm run db:generate` | יוצר מיגרציה אחרי שינוי ב-`src/db/schema.ts` |
 
