@@ -1,0 +1,306 @@
+<title>הסוכן האישי שלי</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Heebo:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~760px), RTL, sections separated by quiet rules; a WhatsApp-style bubble shows the bot's voice. */
+:root{
+  --bg:#f6f8f7; --surface:#ffffff; --ink:#14211f; --muted:#5a6b68; --line:#dbe3e1;
+  --accent:#0f6b5c; --accent-soft:#e2f1ed; --mark:#f6d76b; --bubble:#dcf8c6; --bubble-ink:#14211f;
+  --warn:#9a5b00; --warn-soft:#fbefd9; --ok:#1d7a3e; --ok-soft:#e3f4e8;
+  --f-display:'Rubik','Heebo',system-ui,sans-serif;
+  --f-body:'Heebo',system-ui,'Segoe UI',Arial,sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1715; --surface:#16211e; --ink:#e4ecea; --muted:#9db0ac; --line:#2a3834;
+  --accent:#5fc7b1; --accent-soft:#163a33; --mark:#8a7420; --bubble:#1f4a3a; --bubble-ink:#e4ecea;
+  --warn:#f0b75a; --warn-soft:#3a2c12; --ok:#6fd18f; --ok-soft:#173523; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1715; --surface:#16211e; --ink:#e4ecea; --muted:#9db0ac; --line:#2a3834;
+  --accent:#5fc7b1; --accent-soft:#163a33; --mark:#8a7420; --bubble:#1f4a3a; --bubble-ink:#e4ecea;
+  --warn:#f0b75a; --warn-soft:#3a2c12; --ok:#6fd18f; --ok-soft:#173523; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:40px 80px;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:clamp(1.9rem,5vw,2.6rem);font-weight:800}
+h2{font-size:1.45rem;font-weight:700;display:flex;gap:10px;align-items:baseline}
+h3{font-size:1.05rem;font-weight:700}
+p{margin:0}
+section{display:flex;flex-direction:column;gap:14px;min-width:0}
+.eyebrow{font-size:.78rem;letter-spacing:.06em;color:var(--accent);font-weight:700}
+.lead{color:var(--muted);font-size:1.05rem;max-width:62ch}
+mark{background:var(--mark);color:inherit;padding:0 .2em;border-radius:2px}
+code,.mono{font-family:var(--f-mono);font-size:.86em;direction:ltr;unicode-bidi:isolate}
+code{background:var(--accent-soft);padding:.05em .35em;border-radius:4px}
+a{color:var(--accent)}
+hr{border:0;border-top:1px solid var(--line);margin:0}
+
+.meta{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:.8rem;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface)}
+.chip.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:right;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-weight:700;color:var(--muted);font-size:.8rem;letter-spacing:.03em;background:var(--bg)}
+td:first-child{font-weight:500;white-space:nowrap}
+.pill{display:inline-block;font-size:.78rem;font-weight:700;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* architecture */
+.arch{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.node{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.node b{font-family:var(--f-display);font-weight:700}
+.node small{color:var(--muted);font-size:.85rem;line-height:1.5}
+.node.core{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.flow{font-size:.9rem;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:12px 14px}
+.flow ol{margin:6px 0 0;padding-inline-start:20px}
+
+pre{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;
+  font-family:var(--f-mono);font-size:.82rem;line-height:1.6;direction:ltr;text-align:left}
+pre .c{color:var(--muted)}
+
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0;border-inline-start:2px solid var(--line);margin-inline-start:12px}
+.steps li{position:relative;padding:4px 22px 16px 0}
+.steps li::before{content:attr(data-n);position:absolute;right:-13px;top:4px;width:24px;height:24px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--accent);color:var(--accent);font:700 .75rem/20px var(--f-mono);text-align:center}
+.steps li b{font-family:var(--f-display)}
+.steps li span{display:block;color:var(--muted);font-size:.92rem}
+
+.chat{display:flex;flex-direction:column;gap:8px;max-width:440px}
+.bubble{background:var(--bubble);color:var(--bubble-ink);border-radius:12px 12px 12px 3px;padding:10px 14px;font-size:.95rem;line-height:1.6;align-self:flex-end}
+.bubble.me{background:var(--surface);border:1px solid var(--line);border-radius:12px 12px 3px 12px;align-self:flex-start}
+.bubble time{display:block;font-size:.72rem;color:var(--muted);text-align:left;margin-top:2px}
+
+ul.clean{margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:6px}
+.note{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:12px 14px;font-size:.93rem}
+.note b{color:var(--warn)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.two > div{min-width:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+footer{color:var(--muted);font-size:.85rem}
+</style>
+
+<div class="wrap" dir="rtl" lang="he">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">תוכנית בנייה · לפני כתיבת קוד</span>
+  <h1>הסוכן האישי שלי</h1>
+  <p class="lead">בוט בווטסאפ שיודע מה קורה לי היום: ביטולי שיעורים, ציונים, אימון, תזונה, צופים, כושר קרבי, תשלומים ויומן. אני שואל אותו, והוא גם שולח לי תדריך ותזכורות לבד.</p>
+  <div class="meta">
+    <span class="chip ok">התוכנית אושרה</span>
+    <span class="chip">עודכן 26.11.2026</span>
+    <span class="chip">TypeScript · Node.js · SQLite · Claude</span>
+  </div>
+</header>
+
+<section>
+  <h2>ההחלטות שקיבלנו</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>נושא</th><th>החלטה</th></tr></thead>
+    <tbody>
+      <tr><td>מערכת שעות וביטולים</td><td><b>משו"ב + שחף</b>, ממוזגים לתמונה אחת</td></tr>
+      <tr><td>ציונים והתנהגויות</td><td><b>ממשו"ב</b>. מתקבלת התראה על כל דבר חדש, ואפשר גם לשאול</td></tr>
+      <tr><td>שרת</td><td><b>המחשב בבית</b>, דולק 24/7 ובלי מצב שינה</td></tr>
+      <tr><td>ווטסאפ</td><td><b>החשבון האישי</b>. הבוט רק קורא, ושולח הודעות רק אליי</td></tr>
+      <tr><td>איך מפעילים</td><td>הודעה ב"הודעה לעצמי" שמתחילה ב-<code>/בוט</code></td></tr>
+      <tr><td>יומן גוגל</td><td><b>מוסיף אירועים לבד</b> ליומן-משנה בשם "בוט", ובודק כפילויות</td></tr>
+      <tr><td>תדריך בוקר</td><td><b>07:15 כל יום</b>. בסופ"ש בלי החלק של בית הספר</td></tr>
+      <tr><td>סגנון</td><td>קצר ותכליתי</td></tr>
+      <tr><td>Claude API</td><td>עוד אין חשבון. יש הדרכה בשלב 0</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>האם זה אפשרי?</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>רכיב</th><th>מצב</th><th>איך</th></tr></thead>
+    <tbody>
+      <tr><td>ווטסאפ + קבוצות נבחרות</td><td><span class="pill warn">לא רשמי</span></td><td>ספריית Baileys, שמתחברת כמו WhatsApp Web (סורקים QR פעם אחת). יש סיכון קטן לחסימה, ולכן הבוט כמעט לא שולח הודעות.</td></tr>
+      <tr><td>משו"ב ושחף</td><td><span class="pill warn">לא רשמי</span></td><td>אין API רשמי. סקריפט (Playwright) מתחבר עם המשתמש שלי ושולף את הנתונים. אם האתר ישתנה, הסקריפט יצטרך תיקון.</td></tr>
+      <tr><td>אימונים ותזונה</td><td><span class="pill ok">מלא</span></td><td>שולחים PDF, תמונה או טקסט, ו-Claude הופך אותם לטבלה במסד הנתונים.</td></tr>
+      <tr><td>Google Calendar</td><td><span class="pill ok">רשמי</span></td><td>Google Calendar API עם התחברות חד-פעמית.</td></tr>
+      <tr><td>תזכורות ותדריך</td><td><span class="pill ok">מלא</span></td><td>תזמון פנימי שרץ על המחשב.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>איך זה בנוי</h2>
+  <p>הכל רץ בתוכנה אחת על המחשב בבית. שני מודלים של Claude עושים את העבודה: אחד לשיחה איתי, ואחד זול לקריאת הקבוצות ברקע.</p>
+  <div class="arch">
+    <div class="node"><b>שער ווטסאפ</b><small>Baileys. מעביר הלאה רק "הודעה לעצמי" עם <span class="mono">/בוט</span> והקבוצות שברשימה הלבנה. כל השאר נזרק מיד.</small></div>
+    <div class="node core"><b>הסוכן הראשי</b><small>Claude Sonnet 5.5. עונה בעברית ומשתמש בכלים: מערכת, ציונים, אימון, תזונה, יומן, משימות.</small></div>
+    <div class="node"><b>מנתח הקבוצות</b><small>Claude Haiku 5.5. הופך הודעה בקבוצה לאירוע, תשלום, ציוד או הזמנה (JSON).</small></div>
+    <div class="node"><b>מחבר משו"ב</b><small>מערכת, ביטולים, ציונים והתנהגויות. סורק כל 30–60 דקות.</small></div>
+    <div class="node"><b>מחבר שחף</b><small>מערכת וביטולים, ממוזגים עם משו"ב.</small></div>
+    <div class="node"><b>מחבר יומן גוגל</b><small>קורא את כל האירועים וכותב ליומן-המשנה "בוט".</small></div>
+    <div class="node"><b>מתזמן</b><small>תדריך ב-07:15, תזכורות תשלום, התראות על ציונים חדשים.</small></div>
+    <div class="node"><b>מסד נתונים</b><small>SQLite, קובץ אחד מקומי על המחשב.</small></div>
+  </div>
+  <div class="flow"><b>מה קורה כשאני שואל "/בוט מה התבטל היום?"</b>
+    <ol>
+      <li>שער הווטסאפ מזהה את הקידומת ומעביר את ההודעה לסוכן.</li>
+      <li>הסוכן מפעיל את הכלי <span class="mono">schedule.today()</span>, שקורא מהמסד את מה שנשלף ממשו"ב ומשחף.</li>
+      <li>הסוכן מנסח תשובה קצרה ושולח אותה ל"הודעה לעצמי".</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <h2>ככה זה ייראה</h2>
+  <div class="two">
+    <div class="chat">
+      <div class="bubble me">/בוט צריך נעלי ספורט היום?<time>07:40</time></div>
+      <div class="bubble">כן. ספורט בשיעור 5 לא בוטל, ויש כושר קרבי ב-18:00.<time>07:40</time></div>
+      <div class="bubble me">/בוט תחליף בשלישי סקוואט בלאנג'ים<time>07:41</time></div>
+      <div class="bubble">עודכן. יום שלישי: לאנג'ים 3×12 במקום סקוואט.<time>07:41</time></div>
+    </div>
+    <div class="chat">
+      <div class="bubble">בוקר טוב. שישי 27.11<br>
+        📅 שיעור 3 (היסטוריה) בוטל<br>
+        👟 ספורט בשיעור 5, לקחת נעליים<br>
+        💪 אימון B: גב + יד קדמית<br>
+        ⏰ חולצת צופים 40₪, לשלם עד מחר<br>
+        📝 ציון חדש: מתמטיקה 92<time>07:15</time></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>טכנולוגיות</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>שכבה</th><th>בחירה</th></tr></thead>
+    <tbody>
+      <tr><td>שפה</td><td>TypeScript על Node.js 22</td></tr>
+      <tr><td>ווטסאפ</td><td><code>baileys</code></td></tr>
+      <tr><td>בינה מלאכותית</td><td><code>@anthropic-ai/sdk</code>: Sonnet 5.5 לשיחה, Haiku 5.5 לקבוצות, prompt caching כדי להוזיל</td></tr>
+      <tr><td>מסד נתונים</td><td>SQLite עם <code>better-sqlite3</code> ו-Drizzle</td></tr>
+      <tr><td>יומן</td><td><code>googleapis</code></td></tr>
+      <tr><td>משו"ב ושחף</td><td><code>playwright</code></td></tr>
+      <tr><td>תזמון</td><td><code>node-cron</code></td></tr>
+      <tr><td>הרצה קבועה</td><td><code>pm2</code>: מפעיל מחדש אחרי קריסה ועולה עם הדלקת המחשב</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>מבנה התיקיות</h2>
+<pre>Self-/
+├── src/
+│   ├── index.ts
+│   ├── config.ts
+│   ├── whatsapp/        <span class="c"># client · filter (/בוט + whitelist) · media</span>
+│   ├── agent/
+│   │   ├── agent.ts
+│   │   ├── systemPrompt.ts
+│   │   └── tools/       <span class="c"># schedule · grades · fitness · nutrition · calendar · tasks · memory</span>
+│   ├── groups/          <span class="c"># parser (Haiku) · pipeline (dedupe → calendar)</span>
+│   ├── connectors/
+│   │   ├── school/      <span class="c"># SchoolConnector · mashov · shahaf · merge</span>
+│   │   └── google/      <span class="c"># auth · calendar</span>
+│   ├── plans/           <span class="c"># ingest PDF/image/text → workout & nutrition tables</span>
+│   ├── scheduler/       <span class="c"># morningBriefing 07:15 · reminders · gradeAlerts</span>
+│   └── db/              <span class="c"># schema · index</span>
+├── data/                <span class="c"># NOT in git: db, WhatsApp session, tokens</span>
+├── scripts/             <span class="c"># list-groups · google-auth</span>
+├── .env.example
+└── README.md</pre>
+</section>
+
+<section>
+  <h2>מה נשמר במסד הנתונים</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>טבלה</th><th>תוכן</th></tr></thead>
+    <tbody>
+      <tr><td><code>facts</code></td><td>עובדות עליי ("כיתה י'", "כושר קרבי בימי ב'")</td></tr>
+      <tr><td><code>timetable</code></td><td>המערכת הקבועה: יום, שעה, מקצוע, חדר, האם ספורט</td></tr>
+      <tr><td><code>timetable_changes</code></td><td>ביטולים, החלפות ומבחנים לפי תאריך, ומאיזו מערכת הם הגיעו</td></tr>
+      <tr><td><code>grades</code></td><td>מקצוע, ציון, סוג (מבחן/בוחן/עבודה), תאריך</td></tr>
+      <tr><td><code>behavior</code></td><td>חיסור, איחור, הערה, שבח: תאריך, שיעור, מורה</td></tr>
+      <tr><td><code>workout_plan</code></td><td>יום, סדר, תרגיל, סטים, חזרות, מנוחה</td></tr>
+      <tr><td><code>nutrition_plan</code></td><td>ארוחה, שעה, מה אוכלים</td></tr>
+      <tr><td><code>group_messages</code></td><td>הודעות מהקבוצות המורשות בלבד. נמחקות אחרי 30 יום</td></tr>
+      <tr><td><code>items</code></td><td>מה שחולץ מהקבוצות: אירוע, תשלום, ציוד, הזמנה, כולל תאריך, סכום וסטטוס</td></tr>
+      <tr><td><code>reminders</code></td><td>מתי להזכיר ועל מה</td></tr>
+      <tr><td><code>conversation</code></td><td>היסטוריית השיחה איתי</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>התחברויות חד-פעמיות</h2>
+  <div class="two">
+    <div><h3>ווטסאפ</h3>
+      <ul class="clean">
+        <li>מריצים את הבוט, וקוד QR מופיע בחלון.</li>
+        <li>בטלפון: מכשירים מקושרים ← קישור מכשיר ← סורקים.</li>
+        <li><code>npm run list-groups</code> מציג את כל הקבוצות, ובוחרים את "צופים" ו"כושר קרבי".</li>
+      </ul></div>
+    <div><h3>יומן גוגל</h3>
+      <ul class="clean">
+        <li>יוצרים פרויקט ב-Google Cloud ומפעילים את Calendar API (בהדרכה).</li>
+        <li><code>npm run google-auth</code> פותח קישור, ומאשרים.</li>
+        <li>הבוט יוצר יומן-משנה בשם "בוט".</li>
+      </ul></div>
+    <div><h3>משו"ב ושחף</h3>
+      <ul class="clean">
+        <li>שם המשתמש והסיסמה נשמרים בקובץ <code>.env</code> על המחשב בלבד.</li>
+        <li>נבדוק יחד את מבנה האתרים בשלבים 5 ו-6.</li>
+      </ul></div>
+    <div><h3>Claude API</h3>
+      <ul class="clean">
+        <li>נרשמים ב-<span class="mono">console.anthropic.com</span> ומוסיפים $5 של קרדיט.</li>
+        <li>יוצרים API key ושמים אותו ב-<code>.env</code>.</li>
+        <li>אם אני מתחת לגיל 18, הורה צריך לפתוח את החשבון.</li>
+      </ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>שלבי הבנייה</h2>
+  <p>כל שלב עובד ונבדק לפני שעוברים לבא. מתחילים ממה שבטוח יעבוד, ומשאירים את בתי הספר לסוף כי שם יש הכי הרבה אי-ודאות.</p>
+  <ol class="steps">
+    <li data-n="0"><b>שלד ו-Claude API</b><span>מבנה הפרויקט, מסד הנתונים, ופתיחת חשבון API בהדרכה.</span></li>
+    <li data-n="1"><b>ווטסאפ וסוכן בסיסי</b><span>QR, הקידומת /בוט, תשובות בעברית, זיכרון עובדות.</span></li>
+    <li data-n="2"><b>אימונים ותזונה</b><span>קליטת PDF וטקסט, "איזה אימון היום?", עדכונים בשיחה.</span></li>
+    <li data-n="3"><b>יומן גוגל</b><span>קריאת כל האירועים, יומן-משנה "בוט".</span></li>
+    <li data-n="4"><b>קבוצות</b><span>רשימה לבנה, מנתח Haiku, תשלומים, והוספה אוטומטית ליומן בלי כפילויות.</span></li>
+    <li data-n="5"><b>משו"ב</b><span>מערכת, ביטולים, ציונים, התנהגויות והתראות על כל דבר חדש.</span></li>
+    <li data-n="6"><b>שחף</b><span>מערכת וביטולים, ממוזגים עם משו"ב.</span></li>
+    <li data-n="7"><b>תדריך ותזכורות</b><span>07:15 כל יום, ותזכורות לתשלומים ולאירועים.</span></li>
+    <li data-n="8"><b>הרצה קבועה בבית</b><span>pm2, עלייה אוטומטית עם הדלקת המחשב, ביטול מצב שינה.</span></li>
+  </ol>
+</section>
+
+<section>
+  <h2>פרטיות וסיכונים</h2>
+  <ul class="clean">
+    <li>כל המידע נשמר על המחשב שלי. ל-Claude נשלח רק מה שצריך כדי לענות על שאלה מסוימת או לנתח הודעה מסוימת.</li>
+    <li>קבוצות שלא ברשימה הלבנה נזרקות לפני כל עיבוד, לא נשמרות ולא נשלחות לשום מקום.</li>
+    <li>סיסמאות, טוקנים וה-session של ווטסאפ נשמרים בתיקייה <code>data/</code> ובקובץ <code>.env</code>, ולעולם לא עולים ל-GitHub.</li>
+  </ul>
+  <div class="note"><b>חשוב לדעת:</b> החיבור לווטסאפ ולמערכות בית הספר לא רשמי. ווטסאפ יכולה לנתק או לחסום, ומשו"ב או שחף יכולים לשנות את האתר. התוכנית מצמצמת את הסיכון, אבל לא מבטלת אותו.</div>
+</section>
+
+<section>
+  <h2>עלות חודשית משוערת</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>פריט</th><th>עלות</th></tr></thead>
+    <tbody>
+      <tr><td>Claude API</td><td class="mono">≈ $3–10</td></tr>
+      <tr><td>שרת (מחשב ביתי)</td><td>חינם, חוץ מחשמל</td></tr>
+      <tr><td>Google Calendar API</td><td>חינם</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<hr>
+<footer>הצעד הבא: שלב 0, שלד הפרויקט ופתיחת חשבון Claude API.</footer>
+</div>
