@@ -1,10 +1,11 @@
 import { type WAMessage, isJidGroup, jidNormalizedUser } from "baileys";
 import { config } from "../config.js";
 import { messageText, type WhatsApp } from "./client.js";
+import { allowedGroups } from "./groups.js";
 
 export type Incoming =
   | { kind: "command"; text: string; msg: WAMessage }
-  | { kind: "group"; groupId: string; text: string; msg: WAMessage }
+  | { kind: "group"; groupId: string; groupName: string; text: string; msg: WAMessage }
   | { kind: "ignore" };
 
 /**
@@ -22,8 +23,8 @@ export function classify(msg: WAMessage, wa: WhatsApp): Incoming {
 
   // קבוצה מורשית
   if (isJidGroup(key.remoteJid)) {
-    if (!config.WHATSAPP_GROUP_IDS.includes(key.remoteJid) || !text) return { kind: "ignore" };
-    return { kind: "group", groupId: key.remoteJid, text, msg };
+    if (!allowedGroups.has(key.remoteJid) || !text) return { kind: "ignore" };
+    return { kind: "group", groupId: key.remoteJid, groupName: allowedGroups.get(key.remoteJid) ?? "", text, msg };
   }
 
   // הודעה לעצמי

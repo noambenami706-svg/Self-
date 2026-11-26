@@ -16,6 +16,11 @@ const schema = z.object({
     .string()
     .default("")
     .transform((s) => s.split(",").map((x) => x.trim()).filter(Boolean)),
+  /** שמות קבוצות (כמו שהם מופיעים בווטסאפ), מופרדים ב-| . מתעלם מאימוג'ים ומגרשיים. */
+  WHATSAPP_GROUP_NAMES: z
+    .string()
+    .default("")
+    .transform((s) => s.split("|").map((x) => x.trim()).filter(Boolean)),
   MASHOV_SCHOOL_ID: optionalString,
   MASHOV_USERNAME: optionalString,
   MASHOV_PASSWORD: optionalString,

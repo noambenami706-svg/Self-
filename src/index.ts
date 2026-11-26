@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import { DB_PATH, db, migrateDb, schema } from "./db/index.js";
 import { startWhatsApp } from "./whatsapp/client.js";
 import { classify } from "./whatsapp/filter.js";
+import { allowedGroups, resolveAllowedGroups } from "./whatsapp/groups.js";
 
 function status(ok: boolean, label: string, hint?: string) {
   console.log(`${ok ? "✅" : "⬜"} ${label}${!ok && hint ? `  ← ${hint}` : ""}`);
@@ -14,7 +15,8 @@ await migrateDb();
 const [facts] = await db.select({ n: count() }).from(schema.facts);
 status(true, `מסד נתונים: ${DB_PATH} (${facts?.n ?? 0} עובדות שמורות)`);
 status(!!config.ANTHROPIC_API_KEY, "Claude API", "הוסף ANTHROPIC_API_KEY ל-.env והרץ npm run check-claude");
-status(config.WHATSAPP_GROUP_IDS.length > 0, `קבוצות ווטסאפ (${config.WHATSAPP_GROUP_IDS.length})`, "npm run list-groups");
+const groupCount = config.WHATSAPP_GROUP_IDS.length + config.WHATSAPP_GROUP_NAMES.length;
+status(groupCount > 0, `קבוצות ווטסאפ (${groupCount})`, "npm run list-groups");
 status(!!config.MASHOV_USERNAME, "משו\"ב", "שלב 5");
 status(!!config.SHAHAF_USERNAME, "שחף", "שלב 6");
 console.log(`\nתדריך בוקר: ${config.MORNING_BRIEFING_TIME} · קידומת: ${config.BOT_PREFIX}\n`);
@@ -34,6 +36,7 @@ await startWhatsApp({
         .values({
           waMessageId: msg.key.id ?? `${incoming.groupId}:${msg.messageTimestamp}`,
           groupId: incoming.groupId,
+          groupName: incoming.groupName,
           sender: msg.pushName ?? null,
           text: incoming.text,
           sentAt: new Date(Number(msg.messageTimestamp) * 1000).toISOString(),
@@ -53,7 +56,9 @@ await startWhatsApp({
     }
   },
   async onReady(wa) {
+    const { missing } = await resolveAllowedGroups(wa);
+    console.log(`👥 הבוט קורא ${allowedGroups.size} קבוצות. לרשימה: notepad data\\active-groups.txt`);
+    if (missing.length) console.log(`⚠️ ${missing.length} שמות קבוצות לא נמצאו (ראה ברשימה)`);
     console.log(`כתוב בווטסאפ בצ'אט "הודעה לעצמי": ${config.BOT_PREFIX} שלום`);
-    void wa;
   },
 });
