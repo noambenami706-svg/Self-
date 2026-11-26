@@ -32,8 +32,12 @@ export interface WhatsApp {
   sock: WASocket;
   /** כל המזהים של הצ'אט "הודעה לעצמי" (מספר טלפון + LID). */
   selfJids: Set<string>;
-  /** שולח הודעה לצ'אט "הודעה לעצמי" בלבד. */
-  sendToSelf: (text: string) => Promise<void>;
+  /** שולח הודעה לצ'אט מסוים (רק הצ'אט עם עצמי או קבוצת הבוט). */
+  sendTo: (jid: string, text: string) => Promise<void>;
+  /** שולח הודעה יזומה: לקבוצת הבוט אם קיימת, אחרת ל"הודעה לעצמי". */
+  sendToMe: (text: string) => Promise<void>;
+  /** מזהה קבוצת הבוט ("יודע הכל"), אם נמצאה. */
+  botGroupId?: string;
   /** מזהי הודעות שהבוט עצמו שלח – כדי לא לענות לעצמו. */
   sentByBot: Set<string>;
 }
@@ -58,11 +62,14 @@ export async function startWhatsApp(handlers: WhatsAppHandlers): Promise<void> {
     sock,
     selfJids: new Set(),
     sentByBot,
-    async sendToSelf(text) {
-      const to = sock.user?.id ? jidNormalizedUser(sock.user.id) : undefined;
-      if (!to) throw new Error("ווטסאפ עוד לא מחובר");
-      const sent = await sock.sendMessage(to, { text });
+    async sendTo(jid, text) {
+      const sent = await sock.sendMessage(jid, { text });
       if (sent?.key.id) sentByBot.add(sent.key.id);
+    },
+    async sendToMe(text) {
+      const to = wa.botGroupId ?? (sock.user?.id ? jidNormalizedUser(sock.user.id) : undefined);
+      if (!to) throw new Error("ווטסאפ עוד לא מחובר");
+      await wa.sendTo(to, text);
     },
   };
 

@@ -60,21 +60,21 @@ await startWhatsApp({
     if (incoming.kind === "command") {
       console.log(`💬 ${incoming.text}`);
       if (!config.ANTHROPIC_API_KEY) {
-        await wa.sendToSelf("✅ הבוט מחובר ושומע אותך. Claude יחובר אחרי שיתווסף מפתח API.");
+        await wa.sendTo(incoming.chatJid, "✅ הבוט מחובר ושומע אותך. Claude יחובר אחרי שיתווסף מפתח API.");
         return;
       }
       try {
         const attachment = await extractAttachment(incoming.msg);
         if (attachment && "error" in attachment) {
-          await wa.sendToSelf(attachment.error);
+          await wa.sendTo(incoming.chatJid, attachment.error);
           return;
         }
-        await wa.sock.sendPresenceUpdate("composing", msg.key.remoteJid ?? undefined);
+        await wa.sock.sendPresenceUpdate("composing", incoming.chatJid);
         const reply = await runAgent(incoming.text, attachment);
-        await wa.sendToSelf(reply);
+        await wa.sendTo(incoming.chatJid, reply);
       } catch (err) {
         console.error("שגיאה בסוכן:", err);
-        await wa.sendToSelf(friendlyError(err));
+        await wa.sendTo(incoming.chatJid, friendlyError(err));
       }
     }
   },
@@ -82,6 +82,7 @@ await startWhatsApp({
     const { missing } = await resolveAllowedGroups(wa);
     console.log(`👥 הבוט קורא ${allowedGroups.size} קבוצות. לרשימה: notepad data\\active-groups.txt`);
     if (missing.length) console.log(`⚠️ ${missing.length} שמות קבוצות לא נמצאו (ראה ברשימה)`);
-    console.log(`כתוב בווטסאפ בצ'אט "הודעה לעצמי": ${config.BOT_PREFIX} שלום`);
+    if (wa.botGroupId) console.log(`🤖 קבוצת הבוט נמצאה. כתוב שם כל הודעה.`);
+    else console.log(`כתוב בווטסאפ בצ'אט "הודעה לעצמי": ${config.BOT_PREFIX} שלום`);
   },
 });

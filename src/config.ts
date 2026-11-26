@@ -12,6 +12,8 @@ const schema = z.object({
     .regex(/^\d{2}:\d{2}$/, "צריך להיות בפורמט HH:MM, למשל 07:15")
     .default("07:15"),
   BOT_PREFIX: z.string().min(1).default("/בוט"),
+  /** קבוצה פרטית (רק אני בה) שכל הודעה בה הולכת לבוט, בלי קידומת. */
+  BOT_GROUP_NAME: z.string().default("יודע הכל"),
   WHATSAPP_GROUP_IDS: z
     .string()
     .default("")

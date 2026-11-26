@@ -37,8 +37,14 @@ export async function resolveAllowedGroups(wa: WhatsApp): Promise<{ missing: str
     for (const g of matches) allowedGroups.set(g.id, g.subject ?? "");
   }
 
+  // קבוצת הבוט – לא נשמרת כקבוצה רגילה, רק מקבלת פקודות
+  const botGroup = all.find((g) => normalizeName(g.subject ?? "") === normalizeName(config.BOT_GROUP_NAME));
+  wa.botGroupId = botGroup?.id;
+  if (botGroup) allowedGroups.delete(botGroup.id);
+
   const lines = [...allowedGroups].map(([id, name]) => `✅ ${name}\n   ${id}`);
   for (const m of missing) lines.push(`❌ לא נמצאה: ${m}`);
+  lines.push(botGroup ? `🤖 קבוצת הבוט: ${botGroup.subject}\n   ${botGroup.id}` : `🤖 קבוצת הבוט "${config.BOT_GROUP_NAME}" לא נמצאה`);
   writeFileSync(
     path.join(DATA_DIR, "active-groups.txt"),
     `הקבוצות שהבוט קורא (${allowedGroups.size}):\n\n${lines.join("\n\n")}\n`,
