@@ -15,14 +15,17 @@
     "typecheck": "tsc --noEmit",
     "list-groups": "tsx scripts/list-groups.ts",
     "set-key": "tsx scripts/set-key.ts",
-    "set-mashov": "tsx scripts/set-mashov.ts"
+    "set-mashov": "tsx scripts/set-mashov.ts",
+    "google-auth": "tsx scripts/google-auth.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",
+    "@googleapis/calendar": "^20.2.0",
     "@libsql/client": "^0.18.0",
     "baileys": "^7.0.0-rc14",
     "dotenv": "^18.0.10",
     "drizzle-orm": "^0.45.4",
+    "google-auth-library": "^11.3.4",
     "pino": "^10.4.0",
     "qrcode-terminal": "^0.12.0",
     "zod": "^4.6.7"

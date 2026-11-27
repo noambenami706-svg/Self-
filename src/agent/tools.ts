@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db, schema } from "../db/index.js";
 import { allowedGroups } from "../whatsapp/groups.js";
 import { MASHOV_ENDPOINTS } from "../connectors/school/mashov.js";
+import { createBotEvent, deleteBotEvent, googleConfigured, listEvents } from "../connectors/google/calendar.js";
 import { getMashov, mashovConfigured, trimForModel } from "../connectors/school/mashovService.js";
 
 const json = (v: unknown) => JSON.stringify(v, null, 1);
@@ -264,6 +265,79 @@ const mashovGet = betaZodTool({
   },
 });
 
+// ---------- יומן גוגל ----------
+
+const NOT_CONNECTED = "יומן גוגל עוד לא מחובר (צריך להריץ במחשב: npm run google-auth).";
+const errText = (err: unknown) => `שגיאה ביומן גוגל: ${err instanceof Error ? err.message : String(err)}`;
+
+const calendarListEvents = betaZodTool({
+  name: "calendar_list_events",
+  description: "אירועים מיומן גוגל של נועם (כל היומנים המוצגים), מתאריך מסוים לכמה ימים.",
+  inputSchema: z.object({
+    from: z.string().optional().describe("YYYY-MM-DD, ברירת מחדל היום"),
+    days: z.number().int().min(1).max(31).optional().describe("ברירת מחדל 1"),
+  }),
+  run: async ({ from, days }) => {
+    if (!googleConfigured()) return NOT_CONNECTED;
+    try {
+      const start = from ?? new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+      const fromIso = new Date(`${start}T00:00:00+02:00`).toISOString();
+      const toIso = new Date(Date.parse(fromIso) + (days ?? 1) * 86_400_000).toISOString();
+      const events = await listEvents(fromIso, toIso);
+      if (!events.length) return "אין אירועים בטווח הזה.";
+      return events
+        .map((e) => {
+          const when = e.allDay
+            ? `${e.start} (כל היום)`
+            : new Date(e.start).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem", weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+          return `${when} | ${e.title}${e.location ? ` | ${e.location}` : ""} | יומן: ${e.calendar}${e.fromBot ? ` | id=${e.id}` : ""}`;
+        })
+        .join("\n");
+    } catch (err) {
+      return errText(err);
+    }
+  },
+});
+
+const calendarCreateEvent = betaZodTool({
+  name: "calendar_create_event",
+  description:
+    'יוצר אירוע ביומן "בוט" של נועם. לא יוצר כפילות אם כבר נוצר אירוע עם אותו dedupe_key. ' +
+    "start: YYYY-MM-DD ליום שלם, או YYYY-MM-DDTHH:MM:00+02:00 (שעון ישראל; בקיץ +03:00).",
+  inputSchema: z.object({
+    title: z.string(),
+    start: z.string(),
+    end: z.string().optional(),
+    location: z.string().optional(),
+    description: z.string().optional(),
+    dedupe_key: z.string().describe("מזהה קצר וקבוע לאירוע, למשל 'צופים-פעולה-2026-12-01'"),
+  }),
+  run: async ({ title, start, end, location, description, dedupe_key }) => {
+    if (!googleConfigured()) return NOT_CONNECTED;
+    try {
+      const r = await createBotEvent({ title, start, end, location, description, dedupeKey: dedupe_key });
+      return r.created ? `נוצר אירוע ביומן (id=${r.id})` : `האירוע כבר קיים ביומן (id=${r.id})`;
+    } catch (err) {
+      return errText(err);
+    }
+  },
+});
+
+const calendarDeleteEvent = betaZodTool({
+  name: "calendar_delete_event",
+  description: 'מוחק אירוע מיומן "בוט" בלבד (לפי id מ-calendar_list_events).',
+  inputSchema: z.object({ id: z.string() }),
+  run: async ({ id }) => {
+    if (!googleConfigured()) return NOT_CONNECTED;
+    try {
+      await deleteBotEvent(id);
+      return "נמחק.";
+    } catch (err) {
+      return errText(err);
+    }
+  },
+});
+
 // ---------- משקל ----------
 
 const logWeight = betaZodTool({
@@ -307,4 +381,7 @@ export const tools = [
   getTimetable,
   setTimetableDay,
   mashovGet,
+  calendarListEvents,
+  calendarCreateEvent,
+  calendarDeleteEvent,
 ];

@@ -8,6 +8,7 @@ import { classify } from "./whatsapp/filter.js";
 import { allowedGroups, resolveAllowedGroups } from "./whatsapp/groups.js";
 import { extractAttachment } from "./whatsapp/media.js";
 import { mashovConfigured } from "./connectors/school/mashovService.js";
+import { googleConfigured } from "./connectors/google/calendar.js";
 import { startMashovWatch } from "./scheduler/mashovWatch.js";
 
 function status(ok: boolean, label: string, hint?: string) {
@@ -23,7 +24,8 @@ status(!!config.ANTHROPIC_API_KEY, "Claude API", "הוסף ANTHROPIC_API_KEY ל-
 const groupCount = config.WHATSAPP_GROUP_IDS.length + config.WHATSAPP_GROUP_NAMES.length;
 status(groupCount > 0, `קבוצות ווטסאפ (${groupCount})`, "npm run list-groups");
 status(mashovConfigured(), "משו\"ב", "npm run set-mashov");
-status(!!config.SHAHAF_USERNAME, "שחף", "שלב 6");
+status(!!config.SHAHAF_USERNAME, "שחף", "צריך פרטי כניסה מבית הספר");
+status(googleConfigured(), "יומן גוגל", "npm run google-auth");
 console.log(`\nתדריך בוקר: ${config.MORNING_BRIEFING_TIME} · קידומת: ${config.BOT_PREFIX}\n`);
 
 function friendlyError(err: unknown): string {
