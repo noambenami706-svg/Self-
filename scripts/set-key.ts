@@ -17,6 +17,8 @@ const question = rl.question("\nהדבק כאן את המפתח (קליק ימנ
 muted = true;
 const key = (await question).trim();
 rl.close();
+// ליתר ביטחון: מנקה את המסך (כולל היסטוריית הגלילה) כדי שהמפתח לא יישאר גלוי
+process.stdout.write("\x1b[2J\x1b[3J\x1b[H");
 
 if (!/^sk-ant-[\w-]{20,}$/.test(key)) {
   console.log("\n❌ זה לא נראה כמו מפתח. מפתח מתחיל ב-sk-ant- . תעתיק שוב מהאתר ותנסה שוב.");
