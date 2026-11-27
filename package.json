@@ -16,7 +16,8 @@
     "list-groups": "tsx scripts/list-groups.ts",
     "set-key": "tsx scripts/set-key.ts",
     "set-mashov": "tsx scripts/set-mashov.ts",
-    "google-auth": "tsx scripts/google-auth.ts"
+    "google-auth": "tsx scripts/google-auth.ts",
+    "update": "git checkout -- package-lock.json && git pull && npm ci"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",
