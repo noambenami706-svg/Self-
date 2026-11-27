@@ -42,7 +42,11 @@ async function saveTurn(user: string, assistant: string) {
 }
 
 /** מקבל הודעה מנועם (ואולי קובץ מצורף), מפעיל את Claude עם הכלים, ומחזיר תשובה. */
-export async function runAgent(text: string, attachment?: Attachment): Promise<string> {
+export async function runAgent(
+  text: string,
+  attachment?: Attachment,
+  opts: { savedAs?: string; effort?: "low" | "medium" } = {},
+): Promise<string> {
   const history = await loadHistory();
   const userText = `[עכשיו: ${nowInIsrael()}]\n${text || "(בלי טקסט)"}`;
   const content: Anthropic.Beta.BetaContentBlockParam[] = attachment
@@ -54,7 +58,7 @@ export async function runAgent(text: string, attachment?: Attachment): Promise<s
     max_tokens: 4096,
     betas: [FALLBACK_BETA],
     fallbacks: "default",
-    output_config: { effort: "low" },
+    output_config: { effort: opts.effort ?? "low" },
     cache_control: { type: "ephemeral" },
     system: SYSTEM_PROMPT,
     tools,
@@ -73,6 +77,7 @@ export async function runAgent(text: string, attachment?: Attachment): Promise<s
         .trim() || "לא הצלחתי לנסח תשובה, נסה לשאול שוב.";
   }
 
-  await saveTurn(attachment ? `${userText}\n[צורף קובץ]` : userText, reply);
+  const saved = opts.savedAs ? `[עכשיו: ${nowInIsrael()}]\n${opts.savedAs}` : attachment ? `${userText}\n[צורף קובץ]` : userText;
+  await saveTurn(saved, reply);
   return reply;
 }

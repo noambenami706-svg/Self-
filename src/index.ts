@@ -10,6 +10,7 @@ import { extractAttachment } from "./whatsapp/media.js";
 import { mashovConfigured } from "./connectors/school/mashovService.js";
 import { googleConfigured } from "./connectors/google/calendar.js";
 import { startMashovWatch } from "./scheduler/mashovWatch.js";
+import { sendBriefingNow, startDailyScheduler } from "./scheduler/daily.js";
 
 function status(ok: boolean, label: string, hint?: string) {
   console.log(`${ok ? "✅" : "⬜"} ${label}${!ok && hint ? `  ← ${hint}` : ""}`);
@@ -71,6 +72,12 @@ await startWhatsApp({
         return;
       }
       try {
+        // "תדריך" – שולח את תדריך הבוקר עכשיו
+        if (/^(תדריך|תדריך בוקר)$/.test(incoming.text.trim())) {
+          await wa.sock.sendPresenceUpdate("composing", incoming.chatJid);
+          await sendBriefingNow((t) => wa.sendTo(incoming.chatJid, t));
+          return;
+        }
         const attachment = await extractAttachment(incoming.msg);
         if (attachment && "error" in attachment) {
           await wa.sendTo(incoming.chatJid, attachment.error);
@@ -90,7 +97,9 @@ await startWhatsApp({
     console.log(`👥 הבוט קורא ${allowedGroups.size} קבוצות. לרשימה: notepad data\\active-groups.txt`);
     if (missing.length) console.log(`⚠️ ${missing.length} שמות קבוצות לא נמצאו (ראה ברשימה)`);
     currentWa = wa;
-    startMashovWatch((text) => (currentWa ? currentWa.sendToMe(text) : Promise.resolve()));
+    const sendToMe = (text: string) => (currentWa ? currentWa.sendToMe(text) : Promise.resolve());
+    startMashovWatch(sendToMe);
+    startDailyScheduler(sendToMe);
     if (wa.botGroupId) console.log(`🤖 קבוצת הבוט נמצאה. כתוב שם כל הודעה.`);
     else console.log(`כתוב בווטסאפ בצ'אט "הודעה לעצמי": ${config.BOT_PREFIX} שלום`);
   },

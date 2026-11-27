@@ -339,6 +339,46 @@ const calendarDeleteEvent = betaZodTool({
   },
 });
 
+// ---------- תזכורות ----------
+
+const addReminder = betaZodTool({
+  name: "add_reminder",
+  description:
+    "קובע תזכורת שהבוט ישלח לנועם בווטסאפ בזמן מסוים (תשלום, הגשה, ציוד, אירוע). " +
+    "when: YYYY-MM-DDTHH:MM:00+02:00 (שעון ישראל; בקיץ +03:00). אם לא צוינה שעה – 08:00 באותו יום.",
+  inputSchema: z.object({ when: z.string(), text: z.string().describe("הטקסט שיישלח, קצר עם אימוג'י") }),
+  run: async ({ when, text }) => {
+    const t = Date.parse(when);
+    if (Number.isNaN(t)) return "זמן לא תקין. צריך פורמט כמו 2026-12-01T08:00:00+02:00";
+    if (t < Date.now() - 60_000) return "הזמן הזה כבר עבר.";
+    const [row] = await db.insert(schema.reminders).values({ remindAt: new Date(t).toISOString(), text }).returning();
+    return `נקבעה תזכורת #${row!.id} ל-${new Date(t).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem", dateStyle: "short", timeStyle: "short" })}`;
+  },
+});
+
+const listReminders = betaZodTool({
+  name: "list_reminders",
+  description: "התזכורות שעוד לא נשלחו.",
+  inputSchema: z.object({}),
+  run: async () => {
+    const rows = await db.select().from(schema.reminders).where(eq(schema.reminders.sent, false)).orderBy(asc(schema.reminders.remindAt));
+    if (!rows.length) return "אין תזכורות פתוחות.";
+    return rows
+      .map((r) => `#${r.id} ${new Date(r.remindAt).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem", dateStyle: "short", timeStyle: "short" })} – ${r.text}`)
+      .join("\n");
+  },
+});
+
+const cancelReminder = betaZodTool({
+  name: "cancel_reminder",
+  description: "מבטל תזכורת לפי מספר.",
+  inputSchema: z.object({ id: z.number().int() }),
+  run: async ({ id }) => {
+    const res = await db.delete(schema.reminders).where(eq(schema.reminders.id, id));
+    return res.rowsAffected ? `תזכורת #${id} בוטלה.` : `לא נמצאה תזכורת #${id}.`;
+  },
+});
+
 // ---------- משקל ----------
 
 const logWeight = betaZodTool({
@@ -385,4 +425,7 @@ export const tools = [
   calendarListEvents,
   calendarCreateEvent,
   calendarDeleteEvent,
+  addReminder,
+  listReminders,
+  cancelReminder,
 ];
