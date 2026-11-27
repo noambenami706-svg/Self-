@@ -13,7 +13,8 @@
     "check-claude": "tsx scripts/check-claude.ts",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
-    "list-groups": "tsx scripts/list-groups.ts"
+    "list-groups": "tsx scripts/list-groups.ts",
+    "set-key": "tsx scripts/set-key.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",
