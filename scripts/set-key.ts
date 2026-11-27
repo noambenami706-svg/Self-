@@ -5,8 +5,17 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const key = (await rl.question("\nהדבק כאן את המפתח (קליק ימני) ולחץ Enter:\n> ")).trim();
+// המפתח לא מוצג על המסך בזמן ההדבקה (כמו סיסמה)
+const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+let muted = false;
+const rlAny = rl as unknown as { _writeToOutput: (s: string) => void };
+rlAny._writeToOutput = (s: string) => {
+  if (!muted || s.includes("\n")) process.stdout.write(muted ? "\n" : s);
+  else process.stdout.write("*".repeat(Math.min(s.length, 1)));
+};
+const question = rl.question("\nהדבק כאן את המפתח (קליק ימני) ולחץ Enter. הוא יוסתר בכוכביות:\n> ");
+muted = true;
+const key = (await question).trim();
 rl.close();
 
 if (!/^sk-ant-[\w-]{20,}$/.test(key)) {
