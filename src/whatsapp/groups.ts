@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
 import { DATA_DIR } from "../db/index.js";
@@ -37,8 +37,19 @@ export async function resolveAllowedGroups(wa: WhatsApp): Promise<{ missing: str
     for (const g of matches) allowedGroups.set(g.id, g.subject ?? "");
   }
 
-  // קבוצת הבוט – לא נשמרת כקבוצה רגילה, רק מקבלת פקודות
-  const botGroup = all.find((g) => normalizeName(g.subject ?? "") === normalizeName(config.BOT_GROUP_NAME));
+  // קבוצת הבוט – לא נשמרת כקבוצה רגילה, רק מקבלת פקודות.
+  // מחפשים לפי שם (מדויק, ואם אין – מכיל), ואם לא נמצאה משתמשים במזהה שנשמר בפעם הקודמת.
+  const wanted = normalizeName(config.BOT_GROUP_NAME);
+  const found =
+    all.find((g) => normalizeName(g.subject ?? "") === wanted) ??
+    all.find((g) => normalizeName(g.subject ?? "").includes(wanted)) ??
+    // קבוצה שרק אני חבר בה (אם יש בדיוק אחת כזו)
+    (() => {
+      const solo = all.filter((g) => (g.participants?.length ?? 0) === 1);
+      return solo.length === 1 ? solo[0] : undefined;
+    })();
+  const botGroup = found ? { id: found.id, subject: found.subject ?? "" } : loadSavedBotGroup();
+  if (found) saveBotGroup(found.id, found.subject ?? "");
   wa.botGroupId = botGroup?.id;
   if (botGroup) allowedGroups.delete(botGroup.id);
 
@@ -51,4 +62,19 @@ export async function resolveAllowedGroups(wa: WhatsApp): Promise<{ missing: str
     "utf8",
   );
   return { missing };
+}
+
+const BOT_GROUP_FILE = path.join(DATA_DIR, "bot-group.json");
+
+function saveBotGroup(id: string, subject: string) {
+  writeFileSync(BOT_GROUP_FILE, JSON.stringify({ id, subject }));
+}
+
+function loadSavedBotGroup(): { id: string; subject: string } | undefined {
+  if (!existsSync(BOT_GROUP_FILE)) return undefined;
+  try {
+    return JSON.parse(readFileSync(BOT_GROUP_FILE, "utf8"));
+  } catch {
+    return undefined;
+  }
 }
