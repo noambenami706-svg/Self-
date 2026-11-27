@@ -14,7 +14,8 @@
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
     "list-groups": "tsx scripts/list-groups.ts",
-    "set-key": "tsx scripts/set-key.ts"
+    "set-key": "tsx scripts/set-key.ts",
+    "set-mashov": "tsx scripts/set-mashov.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",

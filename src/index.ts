@@ -3,10 +3,12 @@ import { count } from "drizzle-orm";
 import { runAgent } from "./agent/agent.js";
 import { config } from "./config.js";
 import { DB_PATH, db, migrateDb, schema } from "./db/index.js";
-import { startWhatsApp } from "./whatsapp/client.js";
+import { startWhatsApp, type WhatsApp } from "./whatsapp/client.js";
 import { classify } from "./whatsapp/filter.js";
 import { allowedGroups, resolveAllowedGroups } from "./whatsapp/groups.js";
 import { extractAttachment } from "./whatsapp/media.js";
+import { mashovConfigured } from "./connectors/school/mashovService.js";
+import { startMashovWatch } from "./scheduler/mashovWatch.js";
 
 function status(ok: boolean, label: string, hint?: string) {
   console.log(`${ok ? "✅" : "⬜"} ${label}${!ok && hint ? `  ← ${hint}` : ""}`);
@@ -20,7 +22,7 @@ status(true, `מסד נתונים: ${DB_PATH} (${facts?.n ?? 0} עובדות ש�
 status(!!config.ANTHROPIC_API_KEY, "Claude API", "הוסף ANTHROPIC_API_KEY ל-.env והרץ npm run check-claude");
 const groupCount = config.WHATSAPP_GROUP_IDS.length + config.WHATSAPP_GROUP_NAMES.length;
 status(groupCount > 0, `קבוצות ווטסאפ (${groupCount})`, "npm run list-groups");
-status(!!config.MASHOV_USERNAME, "משו\"ב", "שלב 5");
+status(mashovConfigured(), "משו\"ב", "npm run set-mashov");
 status(!!config.SHAHAF_USERNAME, "שחף", "שלב 6");
 console.log(`\nתדריך בוקר: ${config.MORNING_BRIEFING_TIME} · קידומת: ${config.BOT_PREFIX}\n`);
 
@@ -31,6 +33,9 @@ function friendlyError(err: unknown): string {
   if (err instanceof Anthropic.APIConnectionError) return "📡 אין חיבור ל-Claude כרגע, נסה שוב";
   return "❌ משהו השתבש. נסה שוב, ואם זה חוזר תסתכל בחלון של הבוט במחשב.";
 }
+
+/** החיבור הפעיל לווטסאפ (מתעדכן אחרי התחברות מחדש), להודעות יזומות. */
+let currentWa: WhatsApp | undefined;
 
 const startedAt = Math.floor(Date.now() / 1000) - 60;
 
@@ -82,6 +87,8 @@ await startWhatsApp({
     const { missing } = await resolveAllowedGroups(wa);
     console.log(`👥 הבוט קורא ${allowedGroups.size} קבוצות. לרשימה: notepad data\\active-groups.txt`);
     if (missing.length) console.log(`⚠️ ${missing.length} שמות קבוצות לא נמצאו (ראה ברשימה)`);
+    currentWa = wa;
+    startMashovWatch((text) => (currentWa ? currentWa.sendToMe(text) : Promise.resolve()));
     if (wa.botGroupId) console.log(`🤖 קבוצת הבוט נמצאה. כתוב שם כל הודעה.`);
     else console.log(`כתוב בווטסאפ בצ'אט "הודעה לעצמי": ${config.BOT_PREFIX} שלום`);
   },

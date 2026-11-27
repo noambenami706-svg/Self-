@@ -3,6 +3,8 @@ import { and, asc, desc, eq, gte, like, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "../db/index.js";
 import { allowedGroups } from "../whatsapp/groups.js";
+import { MASHOV_ENDPOINTS } from "../connectors/school/mashov.js";
+import { getMashov, mashovConfigured, trimForModel } from "../connectors/school/mashovService.js";
 
 const json = (v: unknown) => JSON.stringify(v, null, 1);
 
@@ -243,6 +245,25 @@ const setTimetableDay = betaZodTool({
   },
 });
 
+// ---------- משו"ב ----------
+
+const mashovGet = betaZodTool({
+  name: "mashov_get",
+  description:
+    'קורא נתונים עדכניים ממשו"ב (JSON גולמי, הפריטים האחרונים). ' +
+    "grades = ציונים, behave = התנהגויות (חיסורים, איחורים, הערות), homework = שיעורי בית, " +
+    "timetable = מערכת, bells = שעות הצלצולים, groups = הקבוצות/מקצועות שלו, lessonsCount = ספירת שיעורים.",
+  inputSchema: z.object({ what: z.enum(MASHOV_ENDPOINTS) }),
+  run: async ({ what }) => {
+    if (!mashovConfigured()) return 'משו"ב עוד לא מחובר (צריך להריץ במחשב: npm run set-mashov).';
+    try {
+      return trimForModel(await getMashov().get(what));
+    } catch (err) {
+      return `שגיאה בקריאה ממשו"ב: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  },
+});
+
 // ---------- משקל ----------
 
 const logWeight = betaZodTool({
@@ -285,4 +306,5 @@ export const tools = [
   getWeightHistory,
   getTimetable,
   setTimetableDay,
+  mashovGet,
 ];

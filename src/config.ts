@@ -24,6 +24,7 @@ const schema = z.object({
     .default("")
     .transform((s) => s.split("|").map((x) => x.trim()).filter(Boolean)),
   MASHOV_SCHOOL_ID: optionalString,
+  MASHOV_YEAR: z.preprocess(emptyToUndefined, z.coerce.number().int().optional()),
   MASHOV_USERNAME: optionalString,
   MASHOV_PASSWORD: optionalString,
   SHAHAF_USERNAME: optionalString,
