@@ -316,7 +316,8 @@ const calendarCreateEvent = betaZodTool({
     if (!googleConfigured()) return NOT_CONNECTED;
     try {
       const r = await createBotEvent({ title, start, end, location, description, dedupeKey: dedupe_key });
-      return r.created ? `נוצר אירוע ביומן (id=${r.id})` : `האירוע כבר קיים ביומן (id=${r.id})`;
+      if (r.created) return `נוצר אירוע ביומן (id=${r.id})`;
+      return r.duplicateOf ? `לא נוסף: כבר יש ביומן באותו יום "${r.duplicateOf}"` : `האירוע כבר קיים ביומן (id=${r.id})`;
     } catch (err) {
       return errText(err);
     }

@@ -106,12 +106,20 @@ export async function createBotEvent(e: {
   location?: string;
   description?: string;
   dedupeKey: string;
-}): Promise<{ created: boolean; id: string }> {
+}): Promise<{ created: boolean; id: string; duplicateOf?: string }> {
   const cal = getApi();
   const calendarId = await ensureBotCalendar(cal);
   const existing = await cal.events.list({ calendarId, privateExtendedProperty: [`dedupe=${e.dedupeKey}`], maxResults: 1 });
   const found = existing.data.items?.[0];
   if (found?.id) return { created: false, id: found.id };
+
+  // כפילות ביומן אחר (למשל אירוע שמישהו הוסיף ידנית): אותו יום + שם דומה
+  const day = e.start.slice(0, 10);
+  const dayStart = new Date(`${day}T00:00:00+02:00`).toISOString();
+  const dayEnd = new Date(Date.parse(dayStart) + 86_400_000).toISOString();
+  const sameDay = await listEvents(dayStart, dayEnd);
+  const twin = sameDay.find((ev) => similarTitles(ev.title, e.title));
+  if (twin) return { created: false, id: twin.id, duplicateOf: `${twin.title} (יומן: ${twin.calendar})` };
 
   const allDay = /^\d{4}-\d{2}-\d{2}$/.test(e.start);
   const end =
@@ -137,4 +145,28 @@ export async function createBotEvent(e: {
 export async function deleteBotEvent(id: string): Promise<void> {
   const cal = getApi();
   await cal.events.delete({ calendarId: await ensureBotCalendar(cal), eventId: id });
+}
+
+/** מילים משמעותיות בכותרת (בלי מילות קישור קצרות ואימוג'ים). */
+function titleWords(t: string): Set<string> {
+  const stop = new Set(["של", "עם", "את", "על", "אל", "ב", "ל", "ה", "ו", "יום", "the", "a"]);
+  return new Set(
+    t
+      .normalize("NFKC")
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => w.replace(/^[והבלמש](?=\p{L}{3,})/u, "")) // ו/ה/ב/ל/מ/ש בתחילת מילה
+      .filter((w) => w.length > 1 && !stop.has(w)),
+  );
+}
+
+/** האם שתי כותרות מתארות כנראה את אותו אירוע. */
+export function similarTitles(a: string, b: string): boolean {
+  const A = titleWords(a);
+  const B = titleWords(b);
+  if (!A.size || !B.size) return false;
+  let common = 0;
+  for (const w of A) if (B.has(w)) common++;
+  return common / Math.min(A.size, B.size) >= 0.5;
 }
